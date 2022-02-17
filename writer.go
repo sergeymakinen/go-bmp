@@ -247,15 +247,19 @@ func Encode(w io.Writer, m image.Image) error {
 			h.bpp = 4
 		default:
 			h.bpp = 8
-			step = (d.X + 3) &^ 3
+		}
+		colors := 1 << h.bpp
+		if len(m.Palette) < 1<<h.bpp {
+			colors = len(m.Palette)
+			h.colorUse = uint32(colors)
 		}
 		if h.bpp < 8 {
-			cap := 8 / int(h.bpp)
-			step = ((d.X+cap-1)/cap + 3) &^ 3
+			pixelsPerByte := 8 / int(h.bpp)
+			step = ((d.X+pixelsPerByte-1)/pixelsPerByte + 3) &^ 3
 		} else {
 			step = (d.X + 3) &^ 3
 		}
-		palette = make([]byte, 1<<h.bpp*4)
+		palette = make([]byte, colors*4)
 		for i := 0; i < len(m.Palette) && i < 1<<h.bpp; i++ {
 			r, g, b, _ := m.Palette[i].RGBA()
 			palette[i*4+0] = uint8(b >> 8)

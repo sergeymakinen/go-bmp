@@ -229,8 +229,8 @@ func (d *decoder) decodeSmallPaletted() (image.Image, error) {
 		return paletted, nil
 	}
 	// There are specified bpp bits per pixel, and each row is 4-byte aligned.
-	cap := 8 / int(d.bpp)
-	b := make([]byte, ((d.c.Width+cap-1)/cap+3)&^3)
+	pixelsPerByte := 8 / int(d.bpp)
+	b := make([]byte, ((d.c.Width+pixelsPerByte-1)/pixelsPerByte+3)&^3)
 	y0, y1, yDelta := d.c.Height-1, -1, -1
 	if d.topDown {
 		y0, y1, yDelta = 0, d.c.Height, +1
