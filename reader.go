@@ -34,26 +34,21 @@
 package bmp
 
 import (
-	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"io"
+	"strconv"
 )
 
 const (
-	fileHeaderLen   = 14
-	infoHeaderLen   = 40
-	v4InfoHeaderLen = 108
-	v5InfoHeaderLen = 124
+	fileHeaderLen = 14
+	infoHeaderLen = 40
 )
 
-const (
-	biRGB       = 0
-	biRLE8      = 1
-	biRLE4      = 2
-	biBitFields = 3
-)
+// FormatError reports that the input is not a valid BMP.
+type FormatError string
+
+func (e FormatError) Error() string { return "bmp: invalid format: " + string(e) }
 
 // UnsupportedError reports that the input uses a valid but unimplemented BMP feature.
 type UnsupportedError string
@@ -76,6 +71,16 @@ type decoder struct {
 }
 
 func (d *decoder) DecodeConfig() error {
+	const (
+		v4InfoHeaderLen = 108
+		v5InfoHeaderLen = 124
+	)
+	const (
+		biRGB       = 0
+		biRLE8      = 1
+		biRLE4      = 2
+		biBitFields = 3
+	)
 	// We only support those BMP images that are a BITMAPFILEHEADER
 	// immediately followed by a BITMAPINFOHEADER.
 	var b [1024]byte
@@ -86,10 +91,10 @@ func (d *decoder) DecodeConfig() error {
 		return err
 	}
 	if string(b[:2]) != "BM" {
-		return errors.New("bmp: invalid format")
+		return FormatError("not a BMP file")
 	}
-	offset := readUint32(b[10:14])
-	infoLen := readUint32(b[14:18])
+	offset := readUint32(b[10:])
+	infoLen := readUint32(b[14:])
 	if infoLen != infoHeaderLen && infoLen != v4InfoHeaderLen && infoLen != v5InfoHeaderLen {
 		return UnsupportedError("DIB header version")
 	}
@@ -99,19 +104,19 @@ func (d *decoder) DecodeConfig() error {
 		}
 		return err
 	}
-	width := int(int32(readUint32(b[18:22])))
-	height := int(int32(readUint32(b[22:26])))
+	width := int(int32(readUint32(b[18:])))
+	height := int(int32(readUint32(b[22:])))
 	if height < 0 {
 		height, d.topDown = -height, true
 	}
 	if width < 0 || height < 0 {
 		return UnsupportedError("non-positive dimension")
 	}
-	if planes := readUint16(b[26:28]); planes != 1 {
-		return UnsupportedError(fmt.Sprintf("planes %d", planes))
+	if planes := readUint16(b[26:]); planes != 1 {
+		return UnsupportedError("planes " + strconv.FormatUint(uint64(planes), 10))
 	}
-	d.bpp = readUint16(b[28:30])
-	compression, colors := readUint32(b[30:34]), readUint32(b[46:50])
+	d.bpp = readUint16(b[28:])
+	compression, colors := readUint32(b[30:]), readUint32(b[46:])
 	colorMaskLen := uint32(0)
 	switch {
 	case compression == biBitFields:
@@ -125,15 +130,15 @@ func (d *decoder) DecodeConfig() error {
 			}
 		}
 		switch {
-		case d.bpp == 16 && readUint32(b[54:58]) == 0xF800 && readUint32(b[58:62]) == 0x7E0 && readUint32(b[62:66]) == 0x1F:
+		case d.bpp == 16 && readUint32(b[54:]) == 0xF800 && readUint32(b[58:]) == 0x7E0 && readUint32(b[62:]) == 0x1F:
 			// RGB565
 			d.rgb565 = true
 			fallthrough
-		case d.bpp == 16 && readUint32(b[54:58]) == 0x7C00 && readUint32(b[58:62]) == 0x3E0 && readUint32(b[62:66]) == 0x1F:
+		case d.bpp == 16 && readUint32(b[54:]) == 0x7C00 && readUint32(b[58:]) == 0x3E0 && readUint32(b[62:]) == 0x1F:
 			// RGB555
 			fallthrough
-		case d.bpp == 32 && readUint32(b[54:58]) == 0xFF0000 && readUint32(b[58:62]) == 0xFF00 && readUint32(b[62:66]) == 0xFF &&
-			(infoLen == infoHeaderLen || readUint32(b[66:70]) == 0xFF000000):
+		case d.bpp == 32 && readUint32(b[54:]) == 0xFF0000 && readUint32(b[58:]) == 0xFF00 && readUint32(b[62:]) == 0xFF &&
+			(infoLen == infoHeaderLen || readUint32(b[66:]) == 0xFF000000):
 			// If compression is set to BITFIELDS, but the bitmask is set to the default bitmask
 			// that would be used if compression was set to 0, we can continue as if compression was 0.
 			compression = biRGB
@@ -193,7 +198,7 @@ func (d *decoder) DecodeConfig() error {
 		}
 		return nil
 	default:
-		return UnsupportedError(fmt.Sprintf("bit depth %d", d.bpp))
+		return UnsupportedError("bit depth " + strconv.FormatUint(uint64(d.bpp), 10))
 	}
 }
 
@@ -305,7 +310,7 @@ Loop:
 				// EOL.
 				x, y = 0, y-1
 				if !isValid() {
-					return nil, errors.New("bmp: invalid RLE data")
+					return nil, FormatError("invalid RLE data")
 				}
 			case 1:
 				// EOF.
@@ -318,7 +323,7 @@ Loop:
 				}
 				x, y = x+int(b1), y-int(b2)
 				if !isValid() {
-					return nil, errors.New("bmp: invalid RLE data")
+					return nil, FormatError("invalid RLE data")
 				}
 			default:
 				// Absolute mode.
@@ -337,14 +342,14 @@ Loop:
 						c = (b[j] >> 4) & 0xF
 					}
 					if !isValid() {
-						return nil, errors.New("bmp: invalid RLE data")
+						return nil, FormatError("invalid RLE data")
 					}
 					paletted.Pix[y*paletted.Stride+x] = c
 					x++
 					if d.bpp == 4 {
 						if i++; i < b2 {
 							if !isValid() {
-								return nil, errors.New("bmp: invalid RLE data")
+								return nil, FormatError("invalid RLE data")
 							}
 							paletted.Pix[y*paletted.Stride+x] = b[j] & 0xF
 							x++
@@ -360,7 +365,7 @@ Loop:
 			// TODO(sergeymakinen): Consider ignoring pixels past the end of the row.
 			for i := uint8(0); i < b1; i++ {
 				if !isValid() {
-					return nil, errors.New("bmp: invalid RLE data")
+					return nil, FormatError("invalid RLE data")
 				}
 				var c byte
 				if d.bpp == 8 {

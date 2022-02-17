@@ -102,7 +102,7 @@ func TestDecodeShouldFail(t *testing.T) {
 			t.Fatalf("Decoder() = _, %v; want %s", err, msg)
 		}
 	}
-	expect(t, "bmp: invalid format")
+	expect(t, "bmp: invalid format: not a BMP file")
 	b[0], b[1] = 'B', 'M'
 	expect(t, "bmp: unsupported feature: DIB header version")
 	binary.LittleEndian.PutUint32(b[14:], 40)

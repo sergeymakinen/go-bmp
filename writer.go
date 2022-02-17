@@ -32,9 +32,9 @@ package bmp
 
 import (
 	"encoding/binary"
-	"errors"
 	"image"
 	"io"
+	"strconv"
 )
 
 func encodeSmallPaletted(w io.Writer, pix []uint8, bpp, dx, dy, stride, step int) error {
@@ -190,7 +190,7 @@ func encode(w io.Writer, m image.Image, step int) error {
 func Encode(w io.Writer, m image.Image) error {
 	d := m.Bounds().Size()
 	if d.X < 0 || d.Y < 0 {
-		return errors.New("bmp: negative bounds")
+		return FormatError("negative bounds")
 	}
 	h := struct {
 		sigBM           [2]byte
@@ -235,6 +235,9 @@ func Encode(w io.Writer, m image.Image) error {
 		h.pixOffset += uint32(len(palette))
 		h.bpp = 8
 	case *image.Paletted:
+		if len(m.Palette) == 0 || len(m.Palette) > 256 {
+			return FormatError("bad palette length: " + strconv.Itoa(len(m.Palette)))
+		}
 		switch {
 		case len(m.Palette) <= 2:
 			h.bpp = 1
