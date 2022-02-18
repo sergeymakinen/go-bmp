@@ -35,15 +35,52 @@ func TestEncode(t *testing.T) {
 				t.Fatalf("Decode() = _, %v; want nil", err)
 			}
 			compare(t, img, img2)
+			if file == "testdata/pal8gs.bmp" {
+				t.Run("Gray", func(t *testing.T) {
+					gray := image.NewGray(img.Bounds())
+					for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+						for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+							gray.Set(x, y, img.At(x, y))
+						}
+					}
+					buf.Reset()
+					if err = Encode(&buf, gray); err != nil {
+						t.Fatalf("Encode() = %v; want nil", err)
+					}
+					img2, err = Decode(bytes.NewReader(buf.Bytes()))
+					if err != nil {
+						t.Fatalf("Decode() = _, %v; want nil", err)
+					}
+					compare(t, img, img2)
+				})
+				t.Run("Gray16", func(t *testing.T) {
+					gray := image.NewGray16(img.Bounds())
+					for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+						for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+							gray.Set(x, y, img.At(x, y))
+						}
+					}
+					buf.Reset()
+					if err = Encode(&buf, gray); err != nil {
+						t.Fatalf("Encode() = %v; want nil", err)
+					}
+					img2, err = Decode(bytes.NewReader(buf.Bytes()))
+					if err != nil {
+						t.Fatalf("Decode() = _, %v; want nil", err)
+					}
+					compare(t, img, img2)
+				})
+			}
 			switch img := img.(type) {
 			case *image.RGBA:
 				t.Run("RGBA;Transparent", func(t *testing.T) {
 					img.Set(0, 0, color.Transparent)
+					img.Set(1, 0, color.RGBA{10, 10, 10, 10})
 					buf.Reset()
-					if err := Encode(&buf, img); err != nil {
+					if err = Encode(&buf, img); err != nil {
 						t.Fatalf("Encode() = %v; want nil", err)
 					}
-					img2, err := Decode(bytes.NewReader(buf.Bytes()))
+					img2, err = Decode(bytes.NewReader(buf.Bytes()))
 					if err != nil {
 						t.Fatalf("Decode() = _, %v; want nil", err)
 					}
@@ -52,11 +89,12 @@ func TestEncode(t *testing.T) {
 			case *image.NRGBA:
 				t.Run("NRGBA;Transparent", func(t *testing.T) {
 					img.Set(0, 0, color.Transparent)
+					img.Set(1, 0, color.NRGBA{10, 10, 10, 10})
 					buf.Reset()
-					if err := Encode(&buf, img); err != nil {
+					if err = Encode(&buf, img); err != nil {
 						t.Fatalf("Encode() = %v; want nil", err)
 					}
-					img2, err := Decode(bytes.NewReader(buf.Bytes()))
+					img2, err = Decode(bytes.NewReader(buf.Bytes()))
 					if err != nil {
 						t.Fatalf("Decode() = _, %v; want nil", err)
 					}
