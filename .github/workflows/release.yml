@@ -2,9 +2,10 @@ on:
   push:
     tags:
       - '*'
-name: goreleaser
+name: Release
 jobs:
-  GoReleaser:
+  goreleaser:
+    name: GoReleaser
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,7 +15,8 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: 1.x
+          check-latest: true
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
