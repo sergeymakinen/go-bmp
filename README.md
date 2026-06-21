@@ -1,6 +1,6 @@
 # bmp
 
-[![tests](https://github.com/sergeymakinen/go-bmp/workflows/tests/badge.svg)](https://github.com/sergeymakinen/go-bmp/actions?query=workflow%3Atests)
+[![Test](https://github.com/sergeymakinen/go-bmp/actions/workflows/test.yml/badge.svg)](https://github.com/sergeymakinen/go-bmp/actions/workflows/test.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/sergeymakinen/go-bmp.svg)](https://pkg.go.dev/github.com/sergeymakinen/go-bmp)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sergeymakinen/go-bmp)](https://goreportcard.com/report/github.com/sergeymakinen/go-bmp)
 [![codecov](https://codecov.io/gh/sergeymakinen/go-bmp/branch/main/graph/badge.svg)](https://codecov.io/gh/sergeymakinen/go-bmp)
@@ -29,7 +29,6 @@ Then import the package into your own code:
 ```go
 import "github.com/sergeymakinen/go-bmp"
 ```
-
 
 ## Example
 
