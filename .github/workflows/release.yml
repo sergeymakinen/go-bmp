@@ -6,27 +6,18 @@ on:
     inputs:
       tag:
         type: string
+permissions:
+  contents: write
 name: Release
 jobs:
-  goreleaser:
-    name: GoReleaser
+  release:
+    name: Release
     runs-on: ubuntu-latest
+    container: ghcr.io/sergeymakinen/ci:debian
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - name: Release
+        uses: sergeymakinen/ci/release@main
         with:
-          ref: '${{ inputs.tag }}'
-          fetch-depth: 0
-      - name: Install Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: 1.x
-          check-latest: true
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          tag: ${{ inputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
